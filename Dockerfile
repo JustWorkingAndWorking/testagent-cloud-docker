@@ -1,0 +1,103 @@
+# syntax=docker/dockerfile:1
+
+FROM ubuntu:24.04
+
+ARG NODE_VERSION=24.20.0
+ARG BUN_VERSION=1.4.0
+
+# 需要与 SSH 插件保持一致
+ARG TESTAGENT_SERVER_COMMIT=testagent
+ARG TESTAGENT_SERVER_APP_NAME=tscode-server
+ARG TESTAGENT_SERVER_DATA_DIR=/root/.tscode-server
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# 验证编译环境位于 X64 环境下
+RUN dpkg --print-architecture | grep -qx amd64
+
+# 安装基础环境
+RUN export DEBIAN_FRONTEND="${DEBIAN_FRONTEND}" \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bash \
+        build-essential \
+        ca-certificates \
+        cmake \
+        curl \
+        git \
+        gzip \
+        iproute2 \
+        jq \
+        less \
+        libstdc++6 \
+        ninja-build \
+        openjdk-8-jdk \
+        openssh-server \
+        passwd \
+        pkg-config \
+        procps \
+        python-is-python3 \
+        python3-pip \
+        python3.12 \
+        python3.12-dev \
+        python3.12-venv \
+        tar \
+        unzip \
+        util-linux \
+        vim-tiny \
+        wget \
+        xz-utils \
+        zip \
+    && rm -f /etc/ssh/ssh_host_* \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Node
+RUN set -eux; \
+    curl --fail --silent --show-error --location --retry 3 \
+        --output /tmp/node-v${NODE_VERSION}-linux-x64.tar.xz \
+        "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz"; \
+    tar --extract --file /tmp/node-v${NODE_VERSION}-linux-x64.tar.xz --xz --directory /usr/local --strip-components=1; \
+    rm -f /tmp/node-v${NODE_VERSION}-linux-x64.tar.xz; \
+    node --version; \
+    npm --version
+
+# 安装 Bun
+RUN set -eux; \
+    export BUN_INSTALL=/tmp/bun-install; \
+    export PATH="/tmp/bun-install/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"; \
+    curl --fail --silent --show-error --location --retry 3 \
+        --output /tmp/bun-install.sh \
+        https://bun.sh/install; \
+    bash /tmp/bun-install.sh "bun-v${BUN_VERSION}"; \
+    install -m 0755 /tmp/bun-install/bin/bun /usr/local/bin/bun; \
+    rm -rf /tmp/bun-install /tmp/bun-install.sh; \
+    bun --version
+
+# 声明当前处于云端模式
+RUN touch /etc/tscode-cloud-mode
+
+# 从本地文件安装 tscode
+RUN --mount=type=bind,source=vscode-server-linux-x64.tar.gz,target=/tmp/vscode-server-linux-x64.tar.gz,readonly \
+    set -eux; \
+    mkdir -p "${TESTAGENT_SERVER_DATA_DIR}/bin/${TESTAGENT_SERVER_COMMIT}"; \
+    tar --extract --file /tmp/vscode-server-linux-x64.tar.gz --gzip \
+        --directory "${TESTAGENT_SERVER_DATA_DIR}/bin/${TESTAGENT_SERVER_COMMIT}" \
+        --strip-components=1; \
+    test -x "${TESTAGENT_SERVER_DATA_DIR}/bin/${TESTAGENT_SERVER_COMMIT}/bin/${TESTAGENT_SERVER_APP_NAME}"; \
+    test -f "${TESTAGENT_SERVER_DATA_DIR}/bin/${TESTAGENT_SERVER_COMMIT}/product.json"
+
+# 配置 SSH
+RUN mkdir -p /run/sshd \
+    && sed -i -E '/^[[:space:]]*#?[[:space:]]*(AuthenticationMethods|PasswordAuthentication|PermitRootLogin|PermitEmptyPasswords|PubkeyAuthentication|KbdInteractiveAuthentication|ChallengeResponseAuthentication|HostbasedAuthentication|GSSAPIAuthentication|UsePAM|AllowTcpForwarding|AllowStreamLocalForwarding)[[:space:]]+/d' /etc/ssh/sshd_config \
+    && printf '\nAuthenticationMethods none\nPasswordAuthentication yes\nPermitRootLogin yes\nPermitEmptyPasswords yes\nPubkeyAuthentication no\nKbdInteractiveAuthentication no\nChallengeResponseAuthentication no\nHostbasedAuthentication no\nGSSAPIAuthentication no\nUsePAM no\nAllowTcpForwarding yes\nAllowStreamLocalForwarding yes\n' >> /etc/ssh/sshd_config \
+    && passwd --delete root
+
+# 配置启动脚本
+COPY start.sh /root/.start.sh
+
+RUN chmod 0755 /root/.start.sh
+
+EXPOSE 22
+
+ENTRYPOINT ["/root/.start.sh"]
+CMD ["/usr/sbin/sshd", "-D", "-e"]
