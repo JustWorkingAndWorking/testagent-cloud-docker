@@ -26,6 +26,7 @@ RUN export DEBIAN_FRONTEND="${DEBIAN_FRONTEND}" \
         curl \
         git \
         gzip \
+        htop \
         iproute2 \
         jq \
         less \
@@ -41,6 +42,8 @@ RUN export DEBIAN_FRONTEND="${DEBIAN_FRONTEND}" \
         python3.12 \
         python3.12-dev \
         python3.12-venv \
+        rsync \
+        sqlite3 \
         tar \
         unzip \
         util-linux \
