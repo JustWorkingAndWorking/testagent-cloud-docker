@@ -92,6 +92,13 @@ RUN mkdir -p /run/sshd \
     && printf '\nAuthenticationMethods none\nPasswordAuthentication yes\nPermitRootLogin yes\nPermitEmptyPasswords yes\nPubkeyAuthentication no\nKbdInteractiveAuthentication no\nChallengeResponseAuthentication no\nHostbasedAuthentication no\nGSSAPIAuthentication no\nUsePAM no\nAllowTcpForwarding yes\nAllowStreamLocalForwarding yes\n' >> /etc/ssh/sshd_config \
     && passwd --delete root
 
+# 创建用户工作目录
+RUN install -d -m 0777 /app \
+    && printf '%s\n' 'cd /app' > /etc/profile.d/app.sh \
+    && chmod 0644 /etc/profile.d/app.sh
+
+WORKDIR /app
+
 # 配置启动脚本
 COPY start.sh /root/.start.sh
 
