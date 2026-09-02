@@ -89,6 +89,16 @@ RUN --mount=type=bind,source=vscode-server-linux-x64.tar.gz,target=/tmp/vscode-s
     test -x "${TESTAGENT_SERVER_DATA_DIR}/bin/${TESTAGENT_SERVER_COMMIT}/bin/${TESTAGENT_SERVER_APP_NAME}"; \
     test -f "${TESTAGENT_SERVER_DATA_DIR}/bin/${TESTAGENT_SERVER_COMMIT}/product.json"
 
+# 从本地文件安装额外的 tscode 插件
+RUN --mount=type=bind,source=.,target=/tmp/build-context,readonly \
+    set -eux; \
+    mkdir -p "${TESTAGENT_SERVER_DATA_DIR}/bin/${TESTAGENT_SERVER_COMMIT}/extensions"; \
+    find /tmp/build-context -maxdepth 1 -type f -name '*.vsix' -print0 \
+        | xargs -0 -r -n 1 \
+            "${TESTAGENT_SERVER_DATA_DIR}/bin/${TESTAGENT_SERVER_COMMIT}/bin/${TESTAGENT_SERVER_APP_NAME}" \
+            --extensions-dir "${TESTAGENT_SERVER_DATA_DIR}/bin/${TESTAGENT_SERVER_COMMIT}/extensions" \
+            --install-extension
+
 # 配置 SSH
 RUN mkdir -p /run/sshd \
     && sed -i -E '/^[[:space:]]*#?[[:space:]]*(AuthenticationMethods|PasswordAuthentication|PermitRootLogin|PermitEmptyPasswords|PubkeyAuthentication|KbdInteractiveAuthentication|ChallengeResponseAuthentication|HostbasedAuthentication|GSSAPIAuthentication|UsePAM|AllowTcpForwarding|AllowStreamLocalForwarding)[[:space:]]+/d' /etc/ssh/sshd_config \
