@@ -10,7 +10,7 @@
 docker build -t testagent/testagent-cloud-docker:1.4.2 .
 ```
 
-4. 运行如下命令到处
+4. 运行如下命令导出镜像
 
 ```shell
 docker save -o testagent-cloud-docker.tar testagent/testagent-cloud-docker:1.4.2
