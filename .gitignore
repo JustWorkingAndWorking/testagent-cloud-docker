@@ -166,4 +166,6 @@ vscode-*.zip
 vscode-*.tar.gz
 testagent-cloud-docker.tar
 testagent-cloud-docker.tar.gz
+tscode-server.tar
+tscode-server.tar.gz
 *.vsix
