@@ -7,12 +7,12 @@
 3. 运行如下命令进行构建
 
 ```shell
-docker build -t testagent/testagent-cloud-docker:1.4.2 .
+docker build -t testagent/tscode-server:1.4.2 .
 ```
 
 4. 运行如下命令导出镜像
 
 ```shell
-docker save -o testagent-cloud-docker.tar testagent/testagent-cloud-docker:1.4.2
-$in="testagent-cloud-docker.tar"; $out="$in.gz"; $src=[IO.File]::OpenRead($in); $dst=[IO.File]::Create($out); $gz=[IO.Compression.GZipStream]::new($dst,[IO.Compression.CompressionMode]::Compress); $src.CopyTo($gz); $gz.Dispose(); $dst.Dispose(); $src.Dispose()
+docker save -o tscode-server.tar testagent/tscode-server:1.4.2
+$in="tscode-server.tar"; $out="$in.gz"; $src=[IO.File]::OpenRead($in); $dst=[IO.File]::Create($out); $gz=[IO.Compression.GZipStream]::new($dst,[IO.Compression.CompressionMode]::Compress); $src.CopyTo($gz); $gz.Dispose(); $dst.Dispose(); $src.Dispose()
 ```
